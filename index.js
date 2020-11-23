@@ -13,7 +13,7 @@ const _delay = async (time) => {
     await new Promise(resolve => { setTimeout(resolve, time) })
 }
 
-const _parseAPIKey = (string) => {
+_parseAPIKey = (string) => {
     return string.match(/: [0-9,a-z,A-z]*/)[0].split(' ')[1]
 }
 
