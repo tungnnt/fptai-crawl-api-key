@@ -45,7 +45,6 @@ module.exports = async (mail) => {
                 resolve(response.data)
             })
             .catch(function (error) {
-                console.log(error)
                 return reject(error)
             });
     })

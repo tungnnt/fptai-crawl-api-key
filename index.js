@@ -1,9 +1,10 @@
 const {
     getRandomMail,
     getMessage,
+    getMessageContent,
     parseActivateLink,
     generateRandomString,
-} = require('./services/tempMail')
+} = require('./services/mailtm')
 const signup = require('./api/signup')
 const activateAccount = require('./api/activateAccount')
 const fs = require('fs')
@@ -20,33 +21,39 @@ _parseAPIKey = (string) => {
 setImmediate(async () => {
     while (true) {
         try {
-            const { email } = await getRandomMail()
-            if (!email) throw new Error('Temp mail not found.')
-            console.log({ email })
+            const email = await getRandomMail()
+            console.log({email})
 
-            let response = await signup(email)
-            if (!response || (response && !/Sign up successfully./.test(response)))
-                throw new Error('FPT.AI sign up phase failed.')
+            await signup(email)
 
             let newMail = ''
             let dontHaveMail = true
+            let timeout = 0
+            let authMail = ''
             while (dontHaveMail) {
-                newMail = await getMessage(email)
+                let {authToken, messageID} = await getMessage(email)
                 console.log({isCheckingMail: true})
-                if (Array.isArray(newMail) && newMail.length > 0) {
+                if (Array.isArray(messageID) && messageID.length > 0) {
                     dontHaveMail = false
+                    newMail = messageID[0]
+                    authMail = authToken
                 }
                 await new Promise((resolve) => { setTimeout(resolve, 1000) })
+                timeout += 1000
             }
-            const { body_text } = newMail[newMail.length - 1]
-            const url = parseActivateLink(body_text)
+
+            const content = await getMessageContent(authMail, newMail.id)
+
+            // const { body_text } = newMail[newMail.length - 1]
+            const url = parseActivateLink(content)
+
             console.log({ url })
-            response = await activateAccount(url)
+            let response = await activateAccount(url)
             if (!response || (response && !/Thank you for your email confirmation./.test(response)))
                 throw new Error('FPT.AI verify email phase failed.')
 
             const browser = await puppeteer.launch({
-                headless: false,
+                headless: true,
                 ignoreHTTPSErrors: true,
                 defaultViewport: null,
                 slowMo: 100,
@@ -84,7 +91,7 @@ setImmediate(async () => {
             if (!apiKey)
                 throw new Error('API Key not found.')
             console.log({apiKey})
-            fs.appendFile('./accounts.txt', JSON.stringify({ email, apiKey }) + '\n', () => { })
+            fs.appendFile('./accounts.txt', apiKey + '\n', () => { })
         } catch (error) {
             console.log(error)
         }
