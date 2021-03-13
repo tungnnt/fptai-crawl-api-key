@@ -4,7 +4,7 @@ const {
     getMessageContent,
     parseActivateLink,
     generateRandomString,
-} = require('./services/mailtm')
+} = require('./services/stopspam')
 const signup = require('./api/signup')
 const activateAccount = require('./api/activateAccount')
 const fs = require('fs')
@@ -29,20 +29,20 @@ setImmediate(async () => {
             let newMail = ''
             let dontHaveMail = true
             let timeout = 0
-            let authMail = ''
             while (dontHaveMail) {
-                let {authToken, messageID} = await getMessage(email)
+                newMail = await getMessage(email)
                 console.log({isCheckingMail: true})
-                if (Array.isArray(messageID) && messageID.length > 0) {
+                if (Array.isArray(newMail) && newMail.length > 0) {
                     dontHaveMail = false
-                    newMail = messageID[0]
-                    authMail = authToken
                 }
                 await new Promise((resolve) => { setTimeout(resolve, 1000) })
                 timeout += 1000
+                console.log({timeout})
             }
 
-            const content = await getMessageContent(authMail, newMail.id)
+            const messageId = newMail[0].queue_id
+            console.log({messageId})
+            const content = await getMessageContent(messageId)
 
             // const { body_text } = newMail[newMail.length - 1]
             const url = parseActivateLink(content)
